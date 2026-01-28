@@ -11,4 +11,6 @@ import java.util.UUID;
 public interface UserRepository extends BaseRepository<UserEntity, UUID> {
     boolean existsByTenantIdAndEmail(UUID tenantId, String email);
     Optional<UserEntity> findByTenantIdAndEmail(UUID tenantId, String email);
+    Optional<UserEntity> findByIdAndTenantId(UUID id, UUID tenantId);
+    Optional<UserEntity> findByTenantId(UUID tenantId);
 }

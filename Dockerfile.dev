@@ -1,0 +1,19 @@
+# Use a base image with Maven and JDK 21
+FROM maven:3.9-eclipse-temurin-21 AS builder
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the Maven project file
+COPY pom.xml .
+
+# Download dependencies to leverage Docker cache
+# This will only run again if pom.xml changes
+RUN mvn dependency:go-offline
+
+# Copy the rest of the application source code
+COPY src ./src
+
+# The command to run the application with Spring Boot DevTools
+# DevTools will automatically handle hot reloading
+CMD ["mvn", "spring-boot:run"]

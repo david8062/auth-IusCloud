@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -25,8 +25,8 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserResponseDTO>> me(@RequestParam String email) {
-        // TODO: En producción, obtener el usuario del token JWT, no por parámetro
-        return ResponseUtil.ok(authService.me(email));
+    public ResponseEntity<ApiResponse<UserResponseDTO>> me() {
+        return ResponseUtil.ok(authService.me());
     }
+
 }

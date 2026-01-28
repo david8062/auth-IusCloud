@@ -1,6 +1,7 @@
 package com.IusCloud.auth.core.features.auth.service;
 
 import com.IusCloud.auth.config.security.JwtService;
+import com.IusCloud.auth.config.security.TenantAuthenticationDetails;
 import com.IusCloud.auth.core.features.auth.domain.dto.LoginRequestDTO;
 import com.IusCloud.auth.core.features.auth.domain.dto.LoginResponseDTO;
 import com.IusCloud.auth.core.features.auth.domain.model.LoginAttemptEntity;
@@ -12,6 +13,8 @@ import com.IusCloud.auth.core.features.users.domain.model.UserEntity;
 import com.IusCloud.auth.core.features.users.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -19,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -98,14 +102,27 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponseDTO me(String email) {
-        // TODO: En un escenario real, extraer el email/ID del token JWT del SecurityContext
-        // Por ahora asumimos que se pasa el email como argumento (simulado)
-        UserEntity user = userRepository.findAll().stream()
-                .filter(u -> u.getEmail().equals(email))
-                .findFirst()
+    public UserResponseDTO me() {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("Usuario no autenticado");
+        }
+
+        UUID userId = UUID.fromString(authentication.getPrincipal().toString());
+
+        TenantAuthenticationDetails details =
+                (TenantAuthenticationDetails) authentication.getDetails();
+
+        String tenantId = details.tenantId();
+
+        UserEntity user = userRepository
+                .findByIdAndTenantId(userId, UUID.fromString(tenantId))
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
+
         return userMapper.toDTO(user);
     }
+
 }

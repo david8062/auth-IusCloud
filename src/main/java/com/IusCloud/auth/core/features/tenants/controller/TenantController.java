@@ -6,6 +6,7 @@ import com.IusCloud.auth.core.features.tenants.service.TenantService;
 import com.IusCloud.auth.shared.responses.ApiResponse;
 import com.IusCloud.auth.shared.responses.PagedResponse;
 import com.IusCloud.auth.shared.responses.ResponseUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,7 +34,7 @@ public class TenantController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<TenantResponseDTO>> create(@RequestBody TenantRequestDTO tenantRequestDTO) {
+    public ResponseEntity<ApiResponse<TenantResponseDTO>> create(@Valid @RequestBody  TenantRequestDTO tenantRequestDTO) {
         return ResponseUtil.created(tenantService.create(tenantRequestDTO));
     }
 

@@ -74,12 +74,6 @@ public class TenantService {
         }
 
         TenantEntity saved = tenantRepository.save(entity);
-
-        RoleEntity admin = new RoleEntity();
-        admin.setName("Administrador");
-        admin.setTenant(saved);
-        admin.setPermissions(new HashSet<>(permissionRepository.findAll()));
-        roleRepository.save(admin);
         return tenantMapper.toDTO(saved);
     }
 

@@ -11,8 +11,10 @@ import com.IusCloud.auth.core.features.users.domain.dto.UserResponseDTO;
 import com.IusCloud.auth.core.features.users.domain.mapper.UserMapper;
 import com.IusCloud.auth.core.features.users.domain.model.UserEntity;
 import com.IusCloud.auth.core.features.users.repository.UserRepository;
+import com.IusCloud.auth.shared.tenant.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,17 +44,13 @@ public class AuthService {
         String ipAddress = request.getRemoteAddr();
         String userAgent = request.getHeader("User-Agent");
 
-        Optional<UserEntity> userOpt;
-
-        if (loginRequest.getTenantId() != null) {
-            userOpt = userRepository.findByTenantIdAndEmail(
-                    loginRequest.getTenantId(), email
-            );
-        } else {
-            userOpt = userRepository.findAll().stream()
-                    .filter(u -> u.getEmail().equals(email))
-                    .findFirst();
+        UUID tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new IllegalStateException("Tenant not resolved");
         }
+
+        Optional<UserEntity> userOpt =
+                userRepository.findByTenantIdAndEmail(tenantId, email);
 
         boolean success = false;
         UserEntity user = null;
@@ -70,7 +68,7 @@ public class AuthService {
         saveLoginAttempt(email, ipAddress, userAgent, success, success ? user : null);
 
         if (!success) {
-            throw new RuntimeException("Credenciales inválidas");
+            throw new BadCredentialsException("Credenctial not match");
         }
 
         String token = jwtService.generateToken(user);
@@ -88,6 +86,53 @@ public class AuthService {
                 roles
         );
     }
+
+    //Login para el proceso de onBoarding
+    public LoginResponseDTO loginWithTenant(
+            UUID tenantId,
+            LoginRequestDTO loginRequest,
+            HttpServletRequest request
+    ) {
+        String email = loginRequest.getEmail();
+        String ipAddress = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+
+        Optional<UserEntity> userOpt =
+                userRepository.findByTenantIdAndEmail(tenantId, email);
+
+        if (userOpt.isEmpty()) {
+            saveLoginAttempt(email, ipAddress, userAgent, false, null);
+            throw new BadCredentialsException("Credentials not match");
+        }
+
+        UserEntity user = userOpt.get();
+
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPasswordHash())
+                || !Boolean.TRUE.equals(user.getActive())) {
+
+            saveLoginAttempt(email, ipAddress, userAgent, false, user);
+            throw new BadCredentialsException("Credentials not match");
+        }
+
+        saveLoginAttempt(email, ipAddress, userAgent, true, user);
+
+        String token = jwtService.generateToken(user);
+
+        List<String> roles = user.getRoles().stream()
+                .map(RoleEntity::getName)
+                .toList();
+
+        return new LoginResponseDTO(
+                token,
+                "Bearer",
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                roles
+        );
+    }
+
+
 
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

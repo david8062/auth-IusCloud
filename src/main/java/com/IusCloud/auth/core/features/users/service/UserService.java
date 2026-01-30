@@ -4,11 +4,13 @@ import com.IusCloud.auth.core.features.roles.domain.model.RoleEntity;
 import com.IusCloud.auth.core.features.roles.repository.RoleRepository;
 import com.IusCloud.auth.core.features.tenants.domain.model.TenantEntity;
 import com.IusCloud.auth.core.features.tenants.repository.TenantRepository;
+import com.IusCloud.auth.core.features.users.domain.dto.UserOwnerRequestDTO;
 import com.IusCloud.auth.core.features.users.domain.dto.UserRequestDTO;
 import com.IusCloud.auth.core.features.users.domain.dto.UserResponseDTO;
 import com.IusCloud.auth.core.features.users.domain.mapper.UserMapper;
 import com.IusCloud.auth.core.features.users.domain.model.UserEntity;
 import com.IusCloud.auth.core.features.users.repository.UserRepository;
+import com.IusCloud.auth.shared.exceptions.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -92,4 +95,32 @@ public class UserService {
         entity.setActive(false);
         userRepository.save(entity);
     }
+
+    @Transactional
+    public UserResponseDTO createOwner(UUID tenantId, UserOwnerRequestDTO dto) {
+
+        TenantEntity tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new BusinessException("TENANT_NOT_FOUND", "Tenant not found"));
+
+        RoleEntity adminRole = roleRepository
+                .findByNameAndTenantId("ADMINISTRATOR",tenantId )
+                .orElseThrow(() -> new BusinessException(
+                        "ADMIN_ROLE_NOT_FOUND",
+                        "Admin role not initialized"
+                ));
+
+        UserEntity user = new UserEntity();
+        user.setTenant(tenant);
+        user.setEmail(dto.getEmail());
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        user.setActive(true);
+
+        user.setRoles(Set.of(adminRole));
+
+        return userMapper.toDTO(userRepository.save(user));
+    }
+
+
 }

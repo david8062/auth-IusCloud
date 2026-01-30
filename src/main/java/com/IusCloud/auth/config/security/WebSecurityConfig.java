@@ -2,6 +2,7 @@ package com.IusCloud.auth.config.security;
 
 import java.util.List;
 
+import com.IusCloud.auth.config.filter.TenantFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -40,7 +41,7 @@ public class WebSecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/tenants/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/onboard/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -62,4 +63,6 @@ public class WebSecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
+
 }

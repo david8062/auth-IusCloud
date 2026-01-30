@@ -32,7 +32,6 @@ public class TenantRequestDTO {
     @Size(max = 50)
     private String plan;
 
-    private Boolean active;
 
     @Size(max = 50)
     private String phone;
@@ -43,8 +42,6 @@ public class TenantRequestDTO {
     @Email
     @Size(max = 150)
     private String billingEmail;
-
-    private TenantEnum status;
 
     @Future
     private Instant trialEndsAt;

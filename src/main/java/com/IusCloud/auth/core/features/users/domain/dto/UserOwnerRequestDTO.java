@@ -1,24 +1,24 @@
-package com.IusCloud.auth.core.features.auth.domain.dto;
+package com.IusCloud.auth.core.features.users.domain.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.UUID;
-
 @Getter
 @Setter
-@AllArgsConstructor
-public class LoginRequestDTO {
+public class UserOwnerRequestDTO {
 
-    @NotBlank
     @Email
+    @NotBlank
     private String email;
 
     @NotBlank
     private String password;
 
+    @NotBlank
+    private String firstName;
 
+    @NotBlank
+    private String lastName;
 }

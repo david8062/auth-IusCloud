@@ -1,5 +1,8 @@
 package com.IusCloud.auth.config.security;
 
+import com.IusCloud.auth.core.features.tenants.domain.model.TenantEntity;
+import com.IusCloud.auth.core.features.tenants.service.TenantResolver;
+import com.IusCloud.auth.shared.tenant.TenantContext;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,9 +22,11 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final TenantResolver tenantResolver;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, TenantResolver tenantResolver) {
         this.jwtService = jwtService;
+        this.tenantResolver = tenantResolver;
     }
 
     @Override
@@ -47,11 +52,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(7);
 
+        boolean tenantSetLocally = false;
+
         try {
+            // 1. Forzar resolución del Tenant si aún no existe en el contexto (Fix de Orden de Filtros)
+            if (!TenantContext.hasTenant()) {
+                TenantEntity tenant = tenantResolver.resolveByHost(request.getServerName());
+                if (tenant != null) {
+                    TenantContext.setTenantId(tenant.getId());
+                    tenantSetLocally = true;
+                }
+            }
+
             Claims claims = jwtService.extractClaims(token);
 
             String userId = claims.getSubject();
             String tenantId = claims.get("tenantId", String.class);
+
+            if (TenantContext.hasTenant()) {
+                String currentTenantId = TenantContext.getTenantId().toString();
+                if (tenantId == null || !currentTenantId.equals(tenantId)) {
+                    throw new SecurityException("Token invalid for this tenant scope");
+                }
+            }
 
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);
@@ -79,6 +102,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.clearContext();
         }
 
-        filterChain.doFilter(request, response);
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            // Limpieza para evitar memory leaks si nosotros establecimos el contexto aquí
+            if (tenantSetLocally) {
+                TenantContext.clear();
+            }
+        }
     }
 }

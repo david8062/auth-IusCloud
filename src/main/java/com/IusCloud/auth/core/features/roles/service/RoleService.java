@@ -9,6 +9,7 @@ import com.IusCloud.auth.core.features.roles.repository.PermissionRepository;
 import com.IusCloud.auth.core.features.roles.repository.RoleRepository;
 import com.IusCloud.auth.core.features.tenants.domain.model.TenantEntity;
 import com.IusCloud.auth.core.features.tenants.repository.TenantRepository;
+import com.IusCloud.auth.shared.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,12 +33,12 @@ public class RoleService {
 
     @Transactional(readOnly = true)
     public Page<RoleResponseDTO> findAll(Pageable pageable) {
-        return roleRepository.findAllByActiveTrue(pageable).map(roleMapper::toDTO);
+        return roleRepository.findAllByTenantIdAndActiveTrue(TenantContext.getTenantId(), pageable).map(roleMapper::toDTO);
     }
 
     @Transactional(readOnly = true)
     public RoleResponseDTO findById(UUID id) {
-        return roleRepository.findById(id)
+        return roleRepository.findByIdAndTenantId(id, TenantContext.getTenantId())
                 .map(roleMapper::toDTO)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
     }

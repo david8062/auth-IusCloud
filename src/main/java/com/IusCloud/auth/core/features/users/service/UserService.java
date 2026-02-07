@@ -11,6 +11,7 @@ import com.IusCloud.auth.core.features.users.domain.mapper.UserMapper;
 import com.IusCloud.auth.core.features.users.domain.model.UserEntity;
 import com.IusCloud.auth.core.features.users.repository.UserRepository;
 import com.IusCloud.auth.shared.exceptions.BusinessException;
+import com.IusCloud.auth.shared.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,12 +38,12 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public Page<UserResponseDTO> findAll(Pageable pageable) {
-        return userRepository.findAllByActiveTrue(pageable).map(userMapper::toDTO);
+        return userRepository.findAllByTenantIdAndActiveTrue(TenantContext.getTenantId(), pageable).map(userMapper::toDTO);
     }
 
     @Transactional(readOnly = true)
     public UserResponseDTO findById(UUID id) {
-        return userRepository.findById(id)
+        return userRepository.findByIdAndTenantId(id, TenantContext.getTenantId())
                 .map(userMapper::toDTO)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }

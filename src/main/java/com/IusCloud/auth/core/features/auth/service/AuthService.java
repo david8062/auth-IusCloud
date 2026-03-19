@@ -1,19 +1,8 @@
 package com.IusCloud.auth.core.features.auth.service;
 
-import com.IusCloud.auth.config.security.JwtService;
-import com.IusCloud.auth.config.security.TenantAuthenticationDetails;
-import com.IusCloud.auth.core.features.auth.domain.dto.LoginRequestDTO;
-import com.IusCloud.auth.core.features.auth.domain.dto.LoginResponseDTO;
-import com.IusCloud.auth.core.features.auth.domain.model.LoginAttemptEntity;
-import com.IusCloud.auth.core.features.auth.repository.LoginAttemptRepository;
-import com.IusCloud.auth.core.features.roles.domain.model.RoleEntity;
-import com.IusCloud.auth.core.features.users.domain.dto.UserResponseDTO;
-import com.IusCloud.auth.core.features.users.domain.mapper.UserMapper;
-import com.IusCloud.auth.core.features.users.domain.model.UserEntity;
-import com.IusCloud.auth.core.features.users.repository.UserRepository;
-import com.IusCloud.auth.shared.tenant.TenantContext;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,10 +11,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import com.IusCloud.auth.config.security.JwtService;
+import com.IusCloud.auth.config.security.TenantAuthenticationDetails;
+import com.IusCloud.auth.core.features.auth.domain.dto.LoginRequestDTO;
+import com.IusCloud.auth.core.features.auth.domain.dto.LoginResponseDTO;
+import com.IusCloud.auth.core.features.auth.domain.model.LoginAttemptEntity;
+import com.IusCloud.auth.core.features.auth.repository.LoginAttemptRepository;
+import com.IusCloud.auth.core.features.users.domain.dto.UserResponseDTO;
+import com.IusCloud.auth.core.features.users.domain.mapper.UserMapper;
+import com.IusCloud.auth.core.features.users.domain.model.UserEntity;
+import com.IusCloud.auth.core.features.users.repository.UserRepository;
+import com.IusCloud.auth.shared.tenant.TenantContext;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -73,18 +72,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(user);
 
-        List<String> roles = user.getRoles().stream()
-                .map(RoleEntity::getName)
-                .toList();
-
-        return new LoginResponseDTO(
-                token,
-                "Bearer",
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                roles
-        );
+        return new LoginResponseDTO(token, "Bearer");
     }
 
     //Login para el proceso de onBoarding
@@ -118,18 +106,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(user);
 
-        List<String> roles = user.getRoles().stream()
-                .map(RoleEntity::getName)
-                .toList();
-
-        return new LoginResponseDTO(
-                token,
-                "Bearer",
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                roles
-        );
+        return new LoginResponseDTO(token, "Bearer");
     }
 
 

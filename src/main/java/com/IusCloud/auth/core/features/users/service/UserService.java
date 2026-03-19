@@ -38,23 +38,32 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public Page<UserResponseDTO> findAll(Pageable pageable) {
-        return userRepository.findAllByTenantIdAndActiveTrue(TenantContext.getTenantId(), pageable).map(userMapper::toDTO);
+        return userRepository.findAllByTenantIdAndActiveTrue(TenantContext.getTenantId(), pageable)
+                .map(userMapper::toDTO);
     }
 
     @Transactional(readOnly = true)
     public UserResponseDTO findById(UUID id) {
-        return userRepository.findByIdAndTenantId(id, TenantContext.getTenantId())
-                .map(userMapper::toDTO)
+        UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Validar tenant
+        if (!user.getTenant().getId().equals(TenantContext.getTenantId())) {
+            throw new RuntimeException("User not found");
+        }
+        
+        return userMapper.toDTO(user);
     }
 
     @Transactional
     public UserResponseDTO create(UserRequestDTO userRequestDTO) {
-        if (userRepository.existsByTenantIdAndEmail(userRequestDTO.getTenantId(), userRequestDTO.getEmail())) {
+        UUID tenantId = TenantContext.getTenantId();
+
+        if (userRepository.existsByTenantIdAndEmail(tenantId, userRequestDTO.getEmail())) {
             throw new RuntimeException("User with email " + userRequestDTO.getEmail() + " already exists for this tenant");
         }
 
-        TenantEntity tenant = tenantRepository.findById(userRequestDTO.getTenantId())
+        TenantEntity tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new RuntimeException("Tenant not found"));
 
         UserEntity entity = userMapper.toEntity(userRequestDTO);
@@ -63,6 +72,12 @@ public class UserService {
 
         if (userRequestDTO.getRoleIds() != null && !userRequestDTO.getRoleIds().isEmpty()) {
             List<RoleEntity> roles = roleRepository.findAllById(userRequestDTO.getRoleIds());
+            // Validar que los roles pertenezcan al tenant
+            for (RoleEntity role : roles) {
+                if (!role.getTenant().getId().equals(tenantId)) {
+                    throw new RuntimeException("Role " + role.getName() + " does not belong to this tenant");
+                }
+            }
             entity.setRoles(new HashSet<>(roles));
         }
 
@@ -74,6 +89,11 @@ public class UserService {
         UserEntity entity = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Validar tenant
+        if (!entity.getTenant().getId().equals(TenantContext.getTenantId())) {
+            throw new RuntimeException("User not found");
+        }
+
         userMapper.updateEntity(entity, userRequestDTO);
 
         if (userRequestDTO.getPassword() != null && !userRequestDTO.getPassword().isBlank()) {
@@ -82,6 +102,12 @@ public class UserService {
 
         if (userRequestDTO.getRoleIds() != null) {
             List<RoleEntity> roles = roleRepository.findAllById(userRequestDTO.getRoleIds());
+            // Validar que los roles pertenezcan al tenant
+            for (RoleEntity role : roles) {
+                if (!role.getTenant().getId().equals(TenantContext.getTenantId())) {
+                    throw new RuntimeException("Role " + role.getName() + " does not belong to this tenant");
+                }
+            }
             entity.setRoles(new HashSet<>(roles));
         }
 
@@ -92,6 +118,12 @@ public class UserService {
     public void delete(UUID id) {
         UserEntity entity = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Validar tenant
+        if (!entity.getTenant().getId().equals(TenantContext.getTenantId())) {
+            throw new RuntimeException("User not found");
+        }
+
         entity.setDeletedAt(Instant.now());
         entity.setActive(false);
         userRepository.save(entity);
@@ -99,6 +131,8 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO createOwner(UUID tenantId, UserOwnerRequestDTO dto) {
+        // Este método se usa durante el onboarding, donde el TenantContext podría no estar establecido aún
+        // o se pasa explícitamente. Se mantiene la lógica original.
 
         TenantEntity tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new BusinessException("TENANT_NOT_FOUND", "Tenant not found"));

@@ -1,14 +1,15 @@
 package com.IusCloud.auth.shared.commandLineRunner;
 
-import com.IusCloud.auth.core.features.roles.domain.model.PermissionEntity;
-import com.IusCloud.auth.core.features.roles.repository.PermissionRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.List;
+import com.IusCloud.auth.core.features.roles.domain.model.PermissionEntity;
+import com.IusCloud.auth.core.features.roles.repository.PermissionRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

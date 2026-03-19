@@ -1,13 +1,16 @@
 package com.IusCloud.auth.core.features.tenants.domain.dto;
 
-import com.IusCloud.auth.core.features.tenants.domain.model.TenantEnum;
 
-
-import jakarta.validation.constraints.*;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.time.Instant;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter

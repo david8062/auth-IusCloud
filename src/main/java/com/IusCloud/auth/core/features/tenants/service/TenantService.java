@@ -1,25 +1,22 @@
 package com.IusCloud.auth.core.features.tenants.service;
 
-import com.IusCloud.auth.core.features.roles.domain.model.RoleEntity;
-import com.IusCloud.auth.core.features.roles.repository.PermissionRepository;
-import com.IusCloud.auth.core.features.roles.repository.RoleRepository;
+import java.time.Instant;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.IusCloud.auth.core.features.tenants.domain.dto.TenantRequestDTO;
 import com.IusCloud.auth.core.features.tenants.domain.dto.TenantResponseDTO;
 import com.IusCloud.auth.core.features.tenants.domain.mapper.TenantMapper;
 import com.IusCloud.auth.core.features.tenants.domain.model.TenantEntity;
 import com.IusCloud.auth.core.features.tenants.domain.model.TenantEnum;
 import com.IusCloud.auth.core.features.tenants.repository.TenantRepository;
-import com.IusCloud.auth.core.features.users.repository.UserRepository;
 import com.IusCloud.auth.shared.exceptions.BusinessException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.HashSet;
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -27,8 +24,6 @@ public class TenantService {
 
     private final TenantRepository tenantRepository;
     private final TenantMapper tenantMapper;
-    private final PermissionRepository permissionRepository;
-    private final RoleRepository roleRepository;
 
     @Transactional(readOnly = true)
     public Page<TenantResponseDTO> findAll(Pageable pageable) {

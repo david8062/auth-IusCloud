@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -33,23 +32,32 @@ public class RoleService {
 
     @Transactional(readOnly = true)
     public Page<RoleResponseDTO> findAll(Pageable pageable) {
-        return roleRepository.findAllByTenantIdAndActiveTrue(TenantContext.getTenantId(), pageable).map(roleMapper::toDTO);
+        UUID tenantId = TenantContext.getTenantId();
+        return roleRepository.findAllByTenantIdAndActiveTrue(tenantId, pageable).map(roleMapper::toDTO);
     }
 
     @Transactional(readOnly = true)
     public RoleResponseDTO findById(UUID id) {
-        return roleRepository.findByIdAndTenantId(id, TenantContext.getTenantId())
-                .map(roleMapper::toDTO)
+        RoleEntity role = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        // Validar que el rol pertenezca al tenant actual
+        if (!role.getTenant().getId().equals(TenantContext.getTenantId())) {
+            throw new RuntimeException("Role not found"); // Ocultar existencia
+        }
+
+        return roleMapper.toDTO(role);
     }
 
     @Transactional
     public RoleResponseDTO create(RoleRequestDTO roleRequestDTO) {
-        if (roleRepository.existsByTenantIdAndName(roleRequestDTO.getTenantId(), roleRequestDTO.getName())) {
+        UUID tenantId = TenantContext.getTenantId();
+
+        if (roleRepository.existsByTenantIdAndName(tenantId, roleRequestDTO.getName())) {
             throw new RuntimeException("Role with name " + roleRequestDTO.getName() + " already exists for this tenant");
         }
 
-        TenantEntity tenant = tenantRepository.findById(roleRequestDTO.getTenantId())
+        TenantEntity tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new RuntimeException("Tenant not found"));
 
         RoleEntity entity = roleMapper.toEntity(roleRequestDTO);
@@ -68,6 +76,11 @@ public class RoleService {
         RoleEntity entity = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
+        // Validar tenant
+        if (!entity.getTenant().getId().equals(TenantContext.getTenantId())) {
+            throw new RuntimeException("Role not found");
+        }
+
         roleMapper.updateEntity(entity, roleRequestDTO);
 
         if (roleRequestDTO.getPermissionIds() != null) {
@@ -82,6 +95,12 @@ public class RoleService {
     public void delete(UUID id) {
         RoleEntity entity = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        // Validar tenant
+        if (!entity.getTenant().getId().equals(TenantContext.getTenantId())) {
+            throw new RuntimeException("Role not found");
+        }
+
         entity.setDeletedAt(Instant.now());
         entity.setActive(false);
         roleRepository.save(entity);

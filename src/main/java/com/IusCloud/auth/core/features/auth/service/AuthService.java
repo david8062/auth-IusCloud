@@ -1,8 +1,20 @@
 package com.IusCloud.auth.core.features.auth.service;
 
-import java.util.Optional;
-import java.util.UUID;
-
+import com.IusCloud.auth.config.security.JwtService;
+import com.IusCloud.auth.config.security.TenantAuthenticationDetails;
+import com.IusCloud.auth.core.features.auth.domain.dto.LoginRequestDTO;
+import com.IusCloud.auth.core.features.auth.domain.dto.LoginResponseDTO;
+import com.IusCloud.auth.core.features.auth.domain.dto.RefreshTokenRequestDTO;
+import com.IusCloud.auth.core.features.auth.domain.model.LoginAttemptEntity;
+import com.IusCloud.auth.core.features.auth.domain.model.RefreshTokenEntity;
+import com.IusCloud.auth.core.features.auth.repository.LoginAttemptRepository;
+import com.IusCloud.auth.core.features.users.domain.dto.UserResponseDTO;
+import com.IusCloud.auth.core.features.users.domain.mapper.UserMapper;
+import com.IusCloud.auth.core.features.users.domain.model.UserEntity;
+import com.IusCloud.auth.core.features.users.repository.UserRepository;
+import com.IusCloud.auth.shared.tenant.TenantContext;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -11,20 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.IusCloud.auth.config.security.JwtService;
-import com.IusCloud.auth.config.security.TenantAuthenticationDetails;
-import com.IusCloud.auth.core.features.auth.domain.dto.LoginRequestDTO;
-import com.IusCloud.auth.core.features.auth.domain.dto.LoginResponseDTO;
-import com.IusCloud.auth.core.features.auth.domain.model.LoginAttemptEntity;
-import com.IusCloud.auth.core.features.auth.repository.LoginAttemptRepository;
-import com.IusCloud.auth.core.features.users.domain.dto.UserResponseDTO;
-import com.IusCloud.auth.core.features.users.domain.mapper.UserMapper;
-import com.IusCloud.auth.core.features.users.domain.model.UserEntity;
-import com.IusCloud.auth.core.features.users.repository.UserRepository;
-import com.IusCloud.auth.shared.tenant.TenantContext;
-
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +35,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional(noRollbackFor = RuntimeException.class)
     public LoginResponseDTO login(LoginRequestDTO loginRequest, HttpServletRequest request) {
@@ -71,8 +72,9 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(user);
+        RefreshTokenEntity refreshToken = refreshTokenService.createRefreshToken(user);
 
-        return new LoginResponseDTO(token, "Bearer");
+        return new LoginResponseDTO(token, "Bearer", refreshToken.getToken());
     }
 
     //Login para el proceso de onBoarding
@@ -105,11 +107,23 @@ public class AuthService {
         saveLoginAttempt(email, ipAddress, userAgent, true, user);
 
         String token = jwtService.generateToken(user);
+        RefreshTokenEntity refreshToken = refreshTokenService.createRefreshToken(user);
 
-        return new LoginResponseDTO(token, "Bearer");
+        return new LoginResponseDTO(token, "Bearer", refreshToken.getToken());
     }
 
+    @Transactional
+    public LoginResponseDTO refreshToken(RefreshTokenRequestDTO refreshTokenRequest) {
+        RefreshTokenEntity refreshToken = refreshTokenService.verifyRefreshToken(refreshTokenRequest.getRefreshToken());
+        UserEntity user = refreshToken.getUser();
+        String newAccessToken = jwtService.generateToken(user);
+        return new LoginResponseDTO(newAccessToken, "Bearer", refreshToken.getToken());
+    }
 
+    @Transactional
+    public void logout(RefreshTokenRequestDTO refreshTokenRequest) {
+        refreshTokenService.revokeRefreshToken(refreshTokenRequest.getRefreshToken());
+    }
 
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

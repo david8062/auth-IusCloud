@@ -31,7 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        String path = request.getServletPath();
         return path.startsWith("/api/v1/auth")
                 || path.startsWith("/api/v1/onboard");
     }
@@ -77,9 +77,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             @SuppressWarnings("unchecked")
-            List<String> roles = claims.get("roles", List.class);
+            List<String> permissions = claims.get("permissions", List.class);
 
-            var authorities = roles.stream()
+            var authorities = permissions.stream()
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
 

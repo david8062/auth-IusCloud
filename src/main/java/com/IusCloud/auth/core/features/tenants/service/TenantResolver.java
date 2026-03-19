@@ -5,6 +5,8 @@ import com.IusCloud.auth.core.features.tenants.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 @RequiredArgsConstructor
 public class TenantResolver {
@@ -25,5 +27,10 @@ public class TenantResolver {
                 .orElseThrow(() ->
                         new RuntimeException("Tenant not found for host: " + host)
                 );
+    }
+
+    public TenantEntity resolveById(UUID id) {
+        return tenantRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tenant not found with ID: " + id));
     }
 }

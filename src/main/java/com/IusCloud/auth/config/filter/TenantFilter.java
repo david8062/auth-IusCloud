@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -27,9 +28,21 @@ public class TenantFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String host = request.getServerName();
+        TenantEntity tenant = null;
 
         try {
-            TenantEntity tenant = tenantResolver.resolveByHost(host);
+            tenant = tenantResolver.resolveByHost(host);
+
+            if (tenant == null) {
+                String tenantIdHeader = request.getHeader("X-Tenant-ID");
+                if (tenantIdHeader != null && !tenantIdHeader.isEmpty()) {
+                    try {
+                        tenant = tenantResolver.resolveById(UUID.fromString(tenantIdHeader));
+                    } catch (Exception e) {
+                        // Ignorar si el ID no es válido o no existe
+                    }
+                }
+            }
 
             if (tenant != null) {
                 TenantContext.setTenantId(tenant.getId());
@@ -44,8 +57,8 @@ public class TenantFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return path.startsWith("/api/v1/auth")
-                || path.startsWith("/api/v1/onboard");
+        String path = request.getServletPath();
+        // El login necesita resolver el tenant, por lo que NO se debe excluir /api/v1/auth
+        return path.startsWith("/api/v1/onboard");
     }
 }

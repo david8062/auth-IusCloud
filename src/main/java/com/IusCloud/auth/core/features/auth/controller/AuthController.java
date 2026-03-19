@@ -2,6 +2,7 @@ package com.IusCloud.auth.core.features.auth.controller;
 
 import com.IusCloud.auth.core.features.auth.domain.dto.LoginRequestDTO;
 import com.IusCloud.auth.core.features.auth.domain.dto.LoginResponseDTO;
+import com.IusCloud.auth.core.features.auth.domain.dto.RefreshTokenRequestDTO;
 import com.IusCloud.auth.core.features.auth.service.AuthService;
 import com.IusCloud.auth.core.features.users.domain.dto.UserResponseDTO;
 import com.IusCloud.auth.shared.responses.ApiResponse;
@@ -22,6 +23,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponseDTO>> login(@Valid @RequestBody LoginRequestDTO loginRequest, HttpServletRequest request) {
         return ResponseUtil.ok(authService.login(loginRequest, request));
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> refreshToken(@Valid @RequestBody RefreshTokenRequestDTO request) {
+        return ResponseUtil.ok(authService.refreshToken(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequestDTO request) {
+        authService.logout(request);
+        return ResponseUtil.noContent();
     }
 
     @GetMapping("/me")

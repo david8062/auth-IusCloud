@@ -1,14 +1,12 @@
 package com.IusCloud.auth.core.features.auth.domain.dto;
 
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
-public class LoginResponseDTO {
-    private String token;
-    private String type = "Bearer";
+public class RefreshTokenRequestDTO {
+    @NotBlank
     private String refreshToken;
 }

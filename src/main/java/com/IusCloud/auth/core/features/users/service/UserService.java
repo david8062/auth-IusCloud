@@ -1,5 +1,6 @@
 package com.IusCloud.auth.core.features.users.service;
 
+import com.IusCloud.auth.core.features.auth.service.RefreshTokenService;
 import com.IusCloud.auth.core.features.roles.domain.model.RoleEntity;
 import com.IusCloud.auth.core.features.roles.repository.RoleRepository;
 import com.IusCloud.auth.core.features.tenants.domain.model.TenantEntity;
@@ -34,6 +35,7 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
 
     @Transactional(readOnly = true)
@@ -124,13 +126,16 @@ public class UserService {
             throw new RuntimeException("User not found");
         }
 
+        // Revocar todos los refresh tokens del usuario
+        refreshTokenService.revokeAllUserTokens(id);
+
         entity.setDeletedAt(Instant.now());
         entity.setActive(false);
         userRepository.save(entity);
     }
 
     @Transactional
-    public UserResponseDTO createOwner(UUID tenantId, UserOwnerRequestDTO dto) {
+    public void createOwner(UUID tenantId, UserOwnerRequestDTO dto) {
         // Este método se usa durante el onboarding, donde el TenantContext podría no estar establecido aún
         // o se pasa explícitamente. Se mantiene la lógica original.
 
@@ -154,7 +159,7 @@ public class UserService {
 
         user.setRoles(Set.of(adminRole));
 
-        return userMapper.toDTO(userRepository.save(user));
+        userMapper.toDTO(userRepository.save(user));
     }
 
 

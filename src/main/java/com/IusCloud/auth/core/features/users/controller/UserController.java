@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -23,27 +24,32 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('USERS:READ')")
     public ResponseEntity<PagedResponse<UserResponseDTO>> getAll(Pageable pageable) {
         Page<UserResponseDTO> page = userService.findAll(pageable);
         return ResponseUtil.paged(page);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('USERS:READ')")
     public ResponseEntity<ApiResponse<UserResponseDTO>> getById(@PathVariable UUID id) {
         return ResponseUtil.ok(userService.findById(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('USERS:WRITE')")
     public ResponseEntity<ApiResponse<UserResponseDTO>> create(@Valid @RequestBody UserRequestDTO userRequestDTO) {
         return ResponseUtil.created(userService.create(userRequestDTO));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('USERS:UPDATE')")
     public ResponseEntity<ApiResponse<UserResponseDTO>> update(@PathVariable UUID id, @Valid @RequestBody UserRequestDTO userRequestDTO) {
         return ResponseUtil.ok(userService.update(id, userRequestDTO));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('USERS:DELETE')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         userService.delete(id);
         return ResponseUtil.noContent();

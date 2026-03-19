@@ -1,6 +1,8 @@
 package com.IusCloud.auth.shared.commandLineRunner;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -18,39 +20,80 @@ public class ActionSeeder implements CommandLineRunner {
 
     private final PermissionRepository permissionRepository;
 
+    // Recursos del sistema — agregar aquí cuando llegue un módulo nuevo
+    private static final List<String> RESOURCES = List.of(
+            //ms_auth
+            "USERS",
+            "ROLES",
+            "TENANT",
+            //ms_legal_core
+            "BRANCHES",
+            "SCHEDULES",
+            "CASES",
+            "CLIENTS",
+            "HEARINGS",
+            "DOCUMENTS",
+            "BILLING"
+    );
+
+    // Acciones fijas — nunca cambian
+    private static final List<String> ACTIONS = List.of(
+            "READ",
+            "WRITE",
+            "UPDATE",
+            "DELETE"
+    );
+
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         seedPermissions();
     }
 
     private void seedPermissions() {
-        if (permissionRepository.count() > 0) {
-            log.info("Permissions already seeded.");
+        List<String> expectedCodes = buildExpectedCodes();
+
+        // Busca cuáles faltan (por si ya hay algunos y se agregan recursos nuevos)
+        Set<String> existingCodes = permissionRepository.findAll()
+                .stream()
+                .map(PermissionEntity::getCode)
+                .collect(Collectors.toSet());
+
+        List<PermissionEntity> missing = expectedCodes.stream()
+                .filter(code -> !existingCodes.contains(code))
+                .map(code -> {
+                    String[] parts    = code.split(":");       // ["CASES", "READ"]
+                    String resource   = capitalize(parts[0]);  // "Cases"
+                    String action     = capitalize(parts[1]);  // "Read"
+                    return createPermission(code, action + " " + resource);
+                })
+                .toList();
+
+        if (missing.isEmpty()) {
+            log.info("Permissions already up to date ({} total).", existingCodes.size());
             return;
         }
 
-        log.info("Seeding permissions...");
+        permissionRepository.saveAll(missing);
+        log.info("Seeded {} new permissions. Total: {}.",
+                missing.size(), existingCodes.size() + missing.size());
+    }
 
-        List<PermissionEntity> permissions = List.of(
-                // ROLES
-                createPermission("ROLE_READ", "Ver roles"),
-                createPermission("ROLE_WRITE", "Crear y modificar roles"),
-                // USERS
-                createPermission("USER_READ", "Ver usuarios"),
-                createPermission("USER_WRITE", "Crear y modificar usuarios"),
-                // TENANTS
-                createPermission("TENANT_READ", "Ver información del tenant"),
-                createPermission("TENANT_ADMIN", "Administrar tenant")
-        );
-
-        permissionRepository.saveAll(permissions);
-        log.info("Permissions seeded successfully.");
+    private List<String> buildExpectedCodes() {
+        // Genera: USERS:READ, USERS:WRITE, USERS:UPDATE, USERS:DELETE, ROLES:READ ...
+        return RESOURCES.stream()
+                .flatMap(r -> ACTIONS.stream().map(a -> r + ":" + a))
+                .toList();
     }
 
     private PermissionEntity createPermission(String code, String description) {
-        PermissionEntity permission = new PermissionEntity();
-        permission.setCode(code);
-        permission.setDescription(description);
-        return permission;
+        PermissionEntity p = new PermissionEntity();
+        p.setCode(code);
+        p.setDescription(description);
+        p.setActive(true);
+        return p;
+    }
+
+    private String capitalize(String s) {
+        return s.charAt(0) + s.substring(1).toLowerCase();
     }
 }

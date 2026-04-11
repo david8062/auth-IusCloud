@@ -8,10 +8,12 @@ import com.IusCloud.auth.core.features.auth.domain.dto.RefreshTokenRequestDTO;
 import com.IusCloud.auth.core.features.auth.domain.model.LoginAttemptEntity;
 import com.IusCloud.auth.core.features.auth.domain.model.RefreshTokenEntity;
 import com.IusCloud.auth.core.features.auth.repository.LoginAttemptRepository;
+import com.IusCloud.auth.core.features.roles.domain.model.PermissionEntity;
 import com.IusCloud.auth.core.features.users.domain.dto.UserResponseDTO;
 import com.IusCloud.auth.core.features.users.domain.mapper.UserMapper;
 import com.IusCloud.auth.core.features.users.domain.model.UserEntity;
 import com.IusCloud.auth.core.features.users.repository.UserRepository;
+import com.IusCloud.auth.shared.redis.PermissionRedisService;
 import com.IusCloud.auth.shared.tenant.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +26,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +40,7 @@ public class AuthService {
     private final UserMapper userMapper;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final PermissionRedisService permissionRedisService;
 
     @Transactional(noRollbackFor = RuntimeException.class)
     public LoginResponseDTO login(LoginRequestDTO loginRequest, HttpServletRequest request) {
@@ -74,6 +79,9 @@ public class AuthService {
         String token = jwtService.generateToken(user);
         RefreshTokenEntity refreshToken = refreshTokenService.createRefreshToken(user);
 
+        Set<String> permissions = extractPermissions(user);
+        permissionRedisService.writePermissions(user.getTenant().getId(), user.getId(), permissions);
+
         return new LoginResponseDTO(token, "Bearer", refreshToken.getToken());
     }
 
@@ -109,6 +117,9 @@ public class AuthService {
         String token = jwtService.generateToken(user);
         RefreshTokenEntity refreshToken = refreshTokenService.createRefreshToken(user);
 
+        Set<String> permissions = extractPermissions(user);
+        permissionRedisService.writePermissions(tenantId, user.getId(), permissions);
+
         return new LoginResponseDTO(token, "Bearer", refreshToken.getToken());
     }
 
@@ -122,9 +133,18 @@ public class AuthService {
 
     @Transactional
     public void logout(RefreshTokenRequestDTO refreshTokenRequest) {
-        refreshTokenService.revokeRefreshToken(refreshTokenRequest.getRefreshToken());
+        RefreshTokenEntity revoked = refreshTokenService.revokeRefreshToken(refreshTokenRequest.getRefreshToken());
+        UserEntity user = revoked.getUser();
+        permissionRedisService.deletePermissions(user.getTenant().getId(), user.getId());
     }
 
+
+    private Set<String> extractPermissions(UserEntity user) {
+        return user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(PermissionEntity::getCode)
+                .collect(Collectors.toSet());
+    }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveLoginAttempt(String email, String ipAddress, String userAgent, boolean success, UserEntity user) {

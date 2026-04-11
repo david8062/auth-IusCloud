@@ -44,11 +44,11 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public void revokeRefreshToken(String token) {
+    public RefreshTokenEntity revokeRefreshToken(String token) {
         RefreshTokenEntity refreshToken = refreshTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Refresh token not found"));
         refreshToken.setRevoked(true);
-        refreshTokenRepository.save(refreshToken);
+        return refreshTokenRepository.save(refreshToken);
     }
 
     @Transactional

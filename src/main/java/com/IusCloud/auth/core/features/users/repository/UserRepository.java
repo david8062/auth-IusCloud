@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,4 +23,6 @@ public interface UserRepository extends BaseRepository<UserEntity, UUID> {
     boolean existsByTenantId(UUID tenantId);
 
     Page<UserEntity> findAllByTenantIdAndActiveTrue(UUID tenantId, Pageable pageable);
+
+    List<UserEntity> findAllByRoles_Id(UUID roleId);
 }

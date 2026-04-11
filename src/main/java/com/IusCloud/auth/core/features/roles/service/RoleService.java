@@ -9,6 +9,8 @@ import com.IusCloud.auth.core.features.roles.repository.PermissionRepository;
 import com.IusCloud.auth.core.features.roles.repository.RoleRepository;
 import com.IusCloud.auth.core.features.tenants.domain.model.TenantEntity;
 import com.IusCloud.auth.core.features.tenants.repository.TenantRepository;
+import com.IusCloud.auth.core.features.users.repository.UserRepository;
+import com.IusCloud.auth.shared.redis.PermissionRedisService;
 import com.IusCloud.auth.shared.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,6 +31,8 @@ public class RoleService {
     private final TenantRepository tenantRepository;
     private final PermissionRepository permissionRepository;
     private final RoleMapper roleMapper;
+    private final UserRepository userRepository;
+    private final PermissionRedisService permissionRedisService;
 
     @Transactional(readOnly = true)
     public Page<RoleResponseDTO> findAll(Pageable pageable) {
@@ -86,6 +90,9 @@ public class RoleService {
         if (roleRequestDTO.getPermissionIds() != null) {
             List<PermissionEntity> permissions = permissionRepository.findAllById(roleRequestDTO.getPermissionIds());
             entity.setPermissions(new HashSet<>(permissions));
+
+            userRepository.findAllByRoles_Id(id)
+                    .forEach(u -> permissionRedisService.deletePermissions(u.getTenant().getId(), u.getId()));
         }
 
         return roleMapper.toDTO(roleRepository.save(entity));

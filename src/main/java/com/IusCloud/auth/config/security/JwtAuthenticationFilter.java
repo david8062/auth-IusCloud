@@ -2,6 +2,7 @@ package com.IusCloud.auth.config.security;
 
 import com.IusCloud.auth.core.features.tenants.domain.model.TenantEntity;
 import com.IusCloud.auth.core.features.tenants.service.TenantResolver;
+import com.IusCloud.auth.shared.redis.PermissionRedisService;
 import com.IusCloud.auth.shared.tenant.TenantContext;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -16,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -23,10 +25,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final TenantResolver tenantResolver;
+    private final PermissionRedisService permissionRedisService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, TenantResolver tenantResolver) {
+    public JwtAuthenticationFilter(JwtService jwtService, TenantResolver tenantResolver,
+                                   PermissionRedisService permissionRedisService) {
         this.jwtService = jwtService;
         this.tenantResolver = tenantResolver;
+        this.permissionRedisService = permissionRedisService;
     }
 
     @Override
@@ -76,8 +81,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
 
-            @SuppressWarnings("unchecked")
-            List<String> permissions = claims.get("permissions", List.class);
+            List<String> permissions = permissionRedisService.readPermissions(
+                    UUID.fromString(tenantId), UUID.fromString(userId));
 
             var authorities = permissions.stream()
                     .map(SimpleGrantedAuthority::new)

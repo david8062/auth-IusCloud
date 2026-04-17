@@ -35,12 +35,11 @@ public class JwtService {
                 .toList();
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("email",     user.getEmail());
-        claims.put("tenantId",  user.getTenant().getId());
-        claims.put("firstName", user.getFirstName());
-        claims.put("lastName",  user.getLastName());
-        claims.put("active",    user.getActive());
-        claims.put("roles",     roles);
+        claims.put("email",    user.getEmail());
+        claims.put("tenantId", user.getTenant().getId());
+        claims.put("username", user.getUsername());
+        claims.put("active",   user.getActive());
+        claims.put("roles",    roles);
 
         return Jwts.builder()
                 .setClaims(claims)

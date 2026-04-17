@@ -37,6 +37,7 @@ public class TenantOnboardingService {
 
         userService.createOwner(tenant.getId(), request.getOwner());
 
+        // identifier = email (known at onboarding time)
         LoginRequestDTO loginRequest = new LoginRequestDTO(
                 request.getOwner().getEmail(),
                 request.getOwner().getPassword()

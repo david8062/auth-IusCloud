@@ -18,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
@@ -37,7 +36,7 @@ public class RoleService {
     @Transactional(readOnly = true)
     public Page<RoleResponseDTO> findAll(Pageable pageable) {
         UUID tenantId = TenantContext.getTenantId();
-        return roleRepository.findAllByTenantIdAndActiveTrue(tenantId, pageable).map(roleMapper::toDTO);
+        return roleRepository.findAllByTenantId(tenantId, pageable).map(roleMapper::toDTO);
     }
 
     @Transactional(readOnly = true)
@@ -89,7 +88,8 @@ public class RoleService {
 
         if (roleRequestDTO.getPermissionIds() != null) {
             List<PermissionEntity> permissions = permissionRepository.findAllById(roleRequestDTO.getPermissionIds());
-            entity.setPermissions(new HashSet<>(permissions));
+            entity.getPermissions().clear();
+            entity.getPermissions().addAll(permissions);
 
             userRepository.findAllByRoles_Id(id)
                     .forEach(u -> permissionRedisService.deletePermissions(u.getTenant().getId(), u.getId()));
@@ -103,13 +103,13 @@ public class RoleService {
         RoleEntity entity = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
-        // Validar tenant
         if (!entity.getTenant().getId().equals(TenantContext.getTenantId())) {
             throw new RuntimeException("Role not found");
         }
 
-        entity.setDeletedAt(Instant.now());
-        entity.setActive(false);
-        roleRepository.save(entity);
+        userRepository.findAllByRoles_Id(id)
+                .forEach(u -> permissionRedisService.deletePermissions(u.getTenant().getId(), u.getId()));
+
+        roleRepository.deleteById(id);
     }
 }

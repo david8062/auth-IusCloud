@@ -22,11 +22,9 @@ public class UserRequestDTO {
     @Size(min = 6, max = 255)
     private String password;
 
+    @NotBlank
     @Size(max = 100)
-    private String firstName;
-
-    @Size(max = 100)
-    private String lastName;
+    private String username;
 
     private Boolean active;
 

@@ -22,27 +22,25 @@ public class ActionSeeder implements CommandLineRunner {
 
     // Recursos del sistema — agregar aquí cuando llegue un módulo nuevo
     private static final List<String> RESOURCES = List.of(
-            //ms_auth
+            // ms_auth
             "USERS",
             "ROLES",
             "TENANT",
-            //ms_legal_core
+            // ms_legal_core
             "BRANCHES",
             "SCHEDULES",
             "CASES",
             "CLIENTS",
             "HEARINGS",
             "DOCUMENTS",
-            "BILLING"
-    );
+            "APPOINTMENTS");
 
     // Acciones fijas — nunca cambian
     private static final List<String> ACTIONS = List.of(
             "READ",
             "WRITE",
             "UPDATE",
-            "DELETE"
-    );
+            "DELETE");
 
     @Override
     public void run(String... args) {
@@ -61,9 +59,9 @@ public class ActionSeeder implements CommandLineRunner {
         List<PermissionEntity> missing = expectedCodes.stream()
                 .filter(code -> !existingCodes.contains(code))
                 .map(code -> {
-                    String[] parts    = code.split(":");       // ["CASES", "READ"]
-                    String resource   = capitalize(parts[0]);  // "Cases"
-                    String action     = capitalize(parts[1]);  // "Read"
+                    String[] parts = code.split(":"); // ["CASES", "READ"]
+                    String resource = capitalize(parts[0]); // "Cases"
+                    String action = capitalize(parts[1]); // "Read"
                     return createPermission(code, action + " " + resource);
                 })
                 .toList();

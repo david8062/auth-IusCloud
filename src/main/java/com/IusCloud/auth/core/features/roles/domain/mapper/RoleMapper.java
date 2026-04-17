@@ -11,6 +11,7 @@ import org.mapstruct.*;
 public interface RoleMapper {
 
     @Mapping(source = "tenant.id", target = "tenantId")
+    @Mapping(target = "active", ignore = true)
     RoleResponseDTO toDTO(RoleEntity entity);
 
     PermissionResponseDTO toPermissionDTO(PermissionEntity entity);

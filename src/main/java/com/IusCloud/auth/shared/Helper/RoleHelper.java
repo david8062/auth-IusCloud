@@ -21,7 +21,6 @@ public class RoleHelper {
         RoleEntity admin = new RoleEntity();
         admin.setName("ADMINISTRATOR");
         admin.setTenant(tenant);
-        admin.setActive(true);
 
         admin.setPermissions(
                 new HashSet<>(permissionRepository.findAll())

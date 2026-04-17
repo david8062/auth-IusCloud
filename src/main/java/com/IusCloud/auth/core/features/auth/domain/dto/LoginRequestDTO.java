@@ -1,6 +1,5 @@
 package com.IusCloud.auth.core.features.auth.domain.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,11 +12,9 @@ import lombok.Setter;
 public class LoginRequestDTO {
 
     @NotBlank
-    @Email
-    private String email;
+    private String identifier; // email or username
 
     @NotBlank
     private String password;
-
 
 }

@@ -45,7 +45,7 @@ public class AuthService {
     @Transactional(noRollbackFor = RuntimeException.class)
     public LoginResponseDTO login(LoginRequestDTO loginRequest, HttpServletRequest request) {
 
-        String email = loginRequest.getEmail();
+        String identifier = loginRequest.getIdentifier();
         String ipAddress = request.getRemoteAddr();
         String userAgent = request.getHeader("User-Agent");
 
@@ -55,7 +55,7 @@ public class AuthService {
         }
 
         Optional<UserEntity> userOpt =
-                userRepository.findByTenantIdAndEmail(tenantId, email);
+                userRepository.findByTenantIdAndEmailOrUsername(tenantId, identifier);
 
         boolean success = false;
         UserEntity user = null;
@@ -70,7 +70,7 @@ public class AuthService {
             }
         }
 
-        saveLoginAttempt(email, ipAddress, userAgent, success, success ? user : null);
+        saveLoginAttempt(identifier, ipAddress, userAgent, success, success ? user : null);
 
         if (!success) {
             throw new BadCredentialsException("Credenctial not match");
@@ -82,7 +82,7 @@ public class AuthService {
         Set<String> permissions = extractPermissions(user);
         permissionRedisService.writePermissions(user.getTenant().getId(), user.getId(), permissions);
 
-        return new LoginResponseDTO(token, "Bearer", refreshToken.getToken());
+        return new LoginResponseDTO(token, "Bearer", refreshToken.getToken(), user.getId(), user.getTenant().getId());
     }
 
     //Login para el proceso de onBoarding
@@ -91,15 +91,15 @@ public class AuthService {
             LoginRequestDTO loginRequest,
             HttpServletRequest request
     ) {
-        String email = loginRequest.getEmail();
+        String identifier = loginRequest.getIdentifier();
         String ipAddress = request.getRemoteAddr();
         String userAgent = request.getHeader("User-Agent");
 
         Optional<UserEntity> userOpt =
-                userRepository.findByTenantIdAndEmail(tenantId, email);
+                userRepository.findByTenantIdAndEmailOrUsername(tenantId, identifier);
 
         if (userOpt.isEmpty()) {
-            saveLoginAttempt(email, ipAddress, userAgent, false, null);
+            saveLoginAttempt(identifier, ipAddress, userAgent, false, null);
             throw new BadCredentialsException("Credentials not match");
         }
 
@@ -108,11 +108,11 @@ public class AuthService {
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPasswordHash())
                 || !Boolean.TRUE.equals(user.getActive())) {
 
-            saveLoginAttempt(email, ipAddress, userAgent, false, user);
+            saveLoginAttempt(identifier, ipAddress, userAgent, false, user);
             throw new BadCredentialsException("Credentials not match");
         }
 
-        saveLoginAttempt(email, ipAddress, userAgent, true, user);
+        saveLoginAttempt(identifier, ipAddress, userAgent, true, user);
 
         String token = jwtService.generateToken(user);
         RefreshTokenEntity refreshToken = refreshTokenService.createRefreshToken(user);
@@ -120,7 +120,7 @@ public class AuthService {
         Set<String> permissions = extractPermissions(user);
         permissionRedisService.writePermissions(tenantId, user.getId(), permissions);
 
-        return new LoginResponseDTO(token, "Bearer", refreshToken.getToken());
+        return new LoginResponseDTO(token, "Bearer", refreshToken.getToken(), user.getId(), tenantId);
     }
 
     @Transactional

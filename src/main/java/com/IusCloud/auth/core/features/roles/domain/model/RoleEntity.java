@@ -1,6 +1,6 @@
 package com.IusCloud.auth.core.features.roles.domain.model;
 
-import com.IusCloud.auth.core.base.BaseModel;
+import com.IusCloud.auth.core.base.BaseAuditModel;
 import com.IusCloud.auth.core.features.tenants.domain.model.TenantEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -17,7 +17,7 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class RoleEntity extends BaseModel {
+public class RoleEntity extends BaseAuditModel {
 
     @Column(name = "name", nullable = false, length = 50)
     private String name;

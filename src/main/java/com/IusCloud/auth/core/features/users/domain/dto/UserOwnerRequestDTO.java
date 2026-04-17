@@ -17,8 +17,5 @@ public class UserOwnerRequestDTO {
     private String password;
 
     @NotBlank
-    private String firstName;
-
-    @NotBlank
-    private String lastName;
+    private String username;
 }

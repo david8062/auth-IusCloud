@@ -13,7 +13,6 @@ import java.util.UUID;
 public class UserResponseDTO extends BaseDTO {
     private UUID tenantId;
     private String email;
-    private String firstName;
-    private String lastName;
+    private String username;
     private Set<RoleResponseDTO> roles;
 }

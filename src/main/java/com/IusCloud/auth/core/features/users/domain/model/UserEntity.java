@@ -30,11 +30,8 @@ public class UserEntity extends BaseModel {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
-    @Column(name = "first_name", length = 100)
-    private String firstName;
-
-    @Column(name = "last_name", length = 100)
-    private String lastName;
+    @Column(name = "username", nullable = false, length = 100)
+    private String username;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

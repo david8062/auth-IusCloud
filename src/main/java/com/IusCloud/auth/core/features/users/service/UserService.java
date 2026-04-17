@@ -37,7 +37,6 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
 
-
     @Transactional(readOnly = true)
     public Page<UserResponseDTO> findAll(Pageable pageable) {
         return userRepository.findAllByTenantIdAndActiveTrue(TenantContext.getTenantId(), pageable)
@@ -48,12 +47,12 @@ public class UserService {
     public UserResponseDTO findById(UUID id) {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         // Validar tenant
         if (!user.getTenant().getId().equals(TenantContext.getTenantId())) {
             throw new RuntimeException("User not found");
         }
-        
+
         return userMapper.toDTO(user);
     }
 
@@ -62,7 +61,13 @@ public class UserService {
         UUID tenantId = TenantContext.getTenantId();
 
         if (userRepository.existsByTenantIdAndEmail(tenantId, userRequestDTO.getEmail())) {
-            throw new RuntimeException("User with email " + userRequestDTO.getEmail() + " already exists for this tenant");
+            throw new RuntimeException(
+                    "User with email " + userRequestDTO.getEmail() + " already exists for this tenant");
+        }
+
+        if (userRepository.existsByTenantIdAndUsername(tenantId, userRequestDTO.getUsername())) {
+            throw new RuntimeException(
+                    "User with username " + userRequestDTO.getUsername() + " already exists for this tenant");
         }
 
         TenantEntity tenant = tenantRepository.findById(tenantId)
@@ -104,13 +109,13 @@ public class UserService {
 
         if (userRequestDTO.getRoleIds() != null) {
             List<RoleEntity> roles = roleRepository.findAllById(userRequestDTO.getRoleIds());
-            // Validar que los roles pertenezcan al tenant
             for (RoleEntity role : roles) {
                 if (!role.getTenant().getId().equals(TenantContext.getTenantId())) {
                     throw new RuntimeException("Role " + role.getName() + " does not belong to this tenant");
                 }
             }
-            entity.setRoles(new HashSet<>(roles));
+            entity.getRoles().clear();
+            entity.getRoles().addAll(roles);
         }
 
         return userMapper.toDTO(userRepository.save(entity));
@@ -136,24 +141,23 @@ public class UserService {
 
     @Transactional
     public void createOwner(UUID tenantId, UserOwnerRequestDTO dto) {
-        // Este método se usa durante el onboarding, donde el TenantContext podría no estar establecido aún
+        // Este método se usa durante el onboarding, donde el TenantContext podría no
+        // estar establecido aún
         // o se pasa explícitamente. Se mantiene la lógica original.
 
         TenantEntity tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new BusinessException("TENANT_NOT_FOUND", "Tenant not found"));
 
         RoleEntity adminRole = roleRepository
-                .findByNameAndTenantId("ADMINISTRATOR",tenantId )
+                .findByNameAndTenantId("ADMINISTRATOR", tenantId)
                 .orElseThrow(() -> new BusinessException(
                         "ADMIN_ROLE_NOT_FOUND",
-                        "Admin role not initialized"
-                ));
+                        "Admin role not initialized"));
 
         UserEntity user = new UserEntity();
         user.setTenant(tenant);
         user.setEmail(dto.getEmail());
-        user.setFirstName(dto.getFirstName());
-        user.setLastName(dto.getLastName());
+        user.setUsername(dto.getUsername());
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         user.setActive(true);
 
@@ -161,6 +165,5 @@ public class UserService {
 
         userMapper.toDTO(userRepository.save(user));
     }
-
 
 }
